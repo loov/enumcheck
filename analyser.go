@@ -1,8 +1,10 @@
 package checkenum
 
 import (
+	"fmt"
 	"go/ast"
 	"go/types"
+	"os"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -121,18 +123,13 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 			found := map[types.Object]struct{}{}
 			for _, clause := range n.Body.List {
-				clause := clause.(*ast.CaseClause) // TODO: can this be anything else?
-				if len(clause.List) == 0 {
+				clause := clause.(*ast.CaseClause)
+				if clause.List == nil {
 					pass.Reportf(clause.Pos(), "default literal clause for checked enum")
 					continue
 				}
 
 				for _, option := range clause.List {
-					if _, isBasic := option.(*ast.BasicLit); isBasic {
-						pass.Reportf(option.Pos(), "basic literal clause for checked enum")
-						continue
-					}
-
 					switch option := option.(type) {
 					case *ast.BasicLit:
 						pass.Reportf(option.Pos(), "basic literal clause for checked enum")
@@ -143,7 +140,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						obj := pass.TypesInfo.ObjectOf(option.Sel)
 						found[obj] = struct{}{}
 					default:
-						pass.Reportf(option.Pos(), "internal error: unhandled type %T", option)
+						filePos := pass.Fset.Position(option.Pos())
+						fmt.Fprintf(os.Stderr, "%v: checkenum internal error: unhandled clause type %T\n", filePos, option)
 					}
 				}
 			}
