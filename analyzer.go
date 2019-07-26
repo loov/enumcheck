@@ -14,7 +14,7 @@ import (
 )
 
 var Analyzer = &analysis.Analyzer{
-	Name: "enumcheck",
+	Name: "checkenum",
 	Doc:  "check for enum validity",
 	Run:  run,
 	Requires: []*analysis.Analyzer{
