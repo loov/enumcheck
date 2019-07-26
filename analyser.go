@@ -108,17 +108,18 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	}
 
 	// disallow basic literal declarations and assignments
-	inspect.Preorder([]ast.Node{
+	inspect.WithStack([]ast.Node{
 		(*ast.ValueSpec)(nil),
 		(*ast.AssignStmt)(nil),
 		(*ast.SwitchStmt)(nil),
-	}, func(n ast.Node) {
+		(*ast.ReturnStmt)(nil),
+	}, func(n ast.Node, push bool, stack []ast.Node) bool {
 		switch n := n.(type) {
 		case *ast.SwitchStmt:
 			typ := pass.TypesInfo.TypeOf(n.Tag)
 			enum, ok := enums[typ]
 			if !ok {
-				return
+				return false
 			}
 
 			found := map[types.Object]struct{}{}
@@ -161,19 +162,33 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			// var x, y EnumType = 123, EnumConst
 			typ := pass.TypesInfo.TypeOf(n.Type)
 			if _, ok := enums[typ]; !ok {
-				return
+				return false
 			}
 
 			for _, rhs := range n.Values {
 				if _, isBasic := rhs.(*ast.BasicLit); isBasic {
 					pass.Reportf(n.Pos(), "basic literal declaration to checked enum")
-					return
+					return false
 				}
 			}
 
 		case *ast.AssignStmt:
 			// var x EnumType
 			// x = 123
+
+			// check against right hand side
+			check := func(against types.Type, i int) {
+				if len(n.Lhs) != len(n.Rhs) {
+					// if it's a tuple assignent,
+					// then type checker guarantees the assignment
+				} else {
+					rhs := n.Rhs[i]
+					if _, isBasic := rhs.(*ast.BasicLit); isBasic {
+						pass.Reportf(n.Pos(), "basic literal assignment to checked enum")
+					}
+				}
+			}
+
 			for i, lhs := range n.Lhs {
 				switch lhs := lhs.(type) {
 				case *ast.Ident:
@@ -185,28 +200,58 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						continue
 					}
 
-					rhs := n.Rhs[i]
-					if _, isBasic := rhs.(*ast.BasicLit); isBasic {
-						pass.Reportf(n.Pos(), "basic literal assignment to checked enum")
-						return
-					}
+					check(obj.Type(), i)
 				case *ast.SelectorExpr, *ast.StarExpr, *ast.IndexExpr:
 					typ := pass.TypesInfo.TypeOf(lhs)
 					if _, ok := enums[typ]; !ok {
 						continue
 					}
 
-					rhs := n.Rhs[i]
-					if _, isBasic := rhs.(*ast.BasicLit); isBasic {
-						pass.Reportf(n.Pos(), "basic literal assignment to checked enum")
-						return
-					}
+					check(typ, i)
 				default:
 					filePos := pass.Fset.Position(n.Pos())
 					fmt.Fprintf(os.Stderr, "%v: checkenum internal error: unhandled assignment type %T\n", filePos, lhs)
 				}
 			}
+		case *ast.ReturnStmt:
+			// TODO: this probably can be optimized
+			var funcDecl *ast.FuncDecl
+			for i := len(stack) - 1; i >= 0; i-- {
+				decl, ok := stack[i].(*ast.FuncDecl)
+				if ok {
+					funcDecl = decl
+					break
+				}
+			}
+			if funcDecl == nil {
+				filePos := pass.Fset.Position(n.Pos())
+				fmt.Fprintf(os.Stderr, "%v: checkenum internal error: unable to find func decl\n", filePos)
+				return false
+			}
+			if funcDecl.Type.Results == nil {
+				return false
+			}
+
+			returnIndex := 0
+			for _, resultField := range funcDecl.Type.Results.List {
+				for range resultField.Names {
+					typ := pass.TypesInfo.TypeOf(resultField.Type)
+					if _, ok := enums[typ]; ok {
+						ret := n.Results[returnIndex]
+						if _, isBasic := ret.(*ast.BasicLit); isBasic {
+							pass.Reportf(n.Pos(), "basic literal return to checked enum")
+						}
+					}
+					returnIndex++
+				}
+			}
+			fmt.Printf("%#v\n", funcDecl)
+			// func Example() (a, b EnumType) {
+			//     return Alpha, 3
+			// }
 		}
+
+		return false
 	})
 
 	return nil, nil

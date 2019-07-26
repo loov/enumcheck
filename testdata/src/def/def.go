@@ -38,3 +38,15 @@ func AssignmentToStruct() {
 	s.Value = 123 // want "basic literal assignment to checked enum"
 	s.Value = Alpha
 }
+
+func ExpandedAssignment() {
+	var x GreekLetterChecked
+	var s Struct
+
+	s.Value, x = Values()
+	_, _ = s.Value, x
+}
+
+func Values() (a, b GreekLetterChecked) {
+	return Alpha, 3 // want "basic literal return to checked enum"
+}
