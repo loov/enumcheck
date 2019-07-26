@@ -1,3 +1,4 @@
+// want package:"def.GreekLetterChecked = {Alpha | Beta | Delta | Eta | Gamma}"
 package def
 
 import "fmt"

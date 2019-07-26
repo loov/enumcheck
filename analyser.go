@@ -17,12 +17,43 @@ var Analyzer = &analysis.Analyzer{
 	Requires: []*analysis.Analyzer{
 		inspect.Analyzer,
 	},
+	FactTypes: []analysis.Fact{
+		new(packageEnumsFact),
+	},
+}
+
+type packageEnumsFact struct {
+	enums enumSet
+}
+
+func (*packageEnumsFact) AFact() {}
+func (pkg *packageEnumsFact) String() string {
+	texts := []string{}
+	for _, enum := range pkg.enums {
+		texts = append(texts, enum.String())
+	}
+	return strings.Join(texts, ", ")
+}
+
+type enumSet map[types.Type]*enum
+
+type enum struct {
+	Type     types.Type
+	Expected []types.Object
+}
+
+func (enum *enum) String() string {
+	names := []string{}
+	for _, obj := range enum.Expected {
+		names = append(names, obj.Name())
+	}
+	return enum.Type.String() + " = {" + strings.Join(names, " | ") + "}"
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
-	expectedTypes := map[types.Type][]types.Object{}
+	pkgEnums := enumSet{}
 
 	// collect checked types
 	inspect.Preorder([]ast.Node{
@@ -36,23 +67,41 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 
 		obj := pass.TypesInfo.Defs[ts.Name]
-		expectedTypes[obj.Type()] = []types.Object{}
+		pkgEnums[obj.Type()] = &enum{
+			Type: obj.Type(),
+		}
 	})
 
 	scope := pass.Pkg.Scope()
 	for _, name := range scope.Names() {
 		obj := scope.Lookup(name)
 		typ := obj.Type()
-		expected, check := expectedTypes[typ]
+		enum, check := pkgEnums[typ]
 		if !check {
 			continue
 		}
 
 		switch obj.(type) {
 		case *types.Const:
-			expectedTypes[typ] = append(expected, obj)
+			enum.Expected = append(enum.Expected, obj)
 		case *types.Var:
-			expectedTypes[typ] = append(expected, obj)
+			enum.Expected = append(enum.Expected, obj)
+		}
+	}
+
+	if len(pkgEnums) > 0 {
+		pass.ExportPackageFact(&packageEnumsFact{pkgEnums})
+	}
+
+	enums := enumSet{}
+	for _, fact := range pass.AllPackageFacts() {
+		pkgEnums, ok := fact.Fact.(*packageEnumsFact)
+		if !ok {
+			continue
+		}
+
+		for k, v := range pkgEnums.enums {
+			enums[k] = v
 		}
 	}
 
@@ -65,7 +114,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		switch n := n.(type) {
 		case *ast.SwitchStmt:
 			typ := pass.TypesInfo.TypeOf(n.Tag)
-			expected, ok := expectedTypes[typ]
+			enum, ok := enums[typ]
 			if !ok {
 				return
 			}
@@ -84,14 +133,23 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						continue
 					}
 
-					id := option.(*ast.Ident)
-					obj := pass.TypesInfo.ObjectOf(id)
-					found[obj] = struct{}{}
+					switch option := option.(type) {
+					case *ast.BasicLit:
+						pass.Reportf(option.Pos(), "basic literal clause for checked enum")
+					case *ast.Ident:
+						obj := pass.TypesInfo.ObjectOf(option)
+						found[obj] = struct{}{}
+					case *ast.SelectorExpr:
+						obj := pass.TypesInfo.ObjectOf(option.Sel)
+						found[obj] = struct{}{}
+					default:
+						pass.Reportf(option.Pos(), "internal error: unhandled type %T", option)
+					}
 				}
 			}
 
 			missing := []string{}
-			for _, obj := range expected {
+			for _, obj := range enum.Expected {
 				if _, exists := found[obj]; !exists {
 					missing = append(missing, obj.Name())
 				}
@@ -104,7 +162,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		case *ast.ValueSpec:
 			// var x, y EnumType = 123, EnumConst
 			typ := pass.TypesInfo.TypeOf(n.Type)
-			if _, ok := expectedTypes[typ]; !ok {
+			if _, ok := enums[typ]; !ok {
 				return
 			}
 
@@ -126,7 +184,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				}
 
 				obj := pass.TypesInfo.ObjectOf(lhsi)
-				if _, ok := expectedTypes[obj.Type()]; !ok {
+				if obj == nil {
+					continue
+				}
+				if _, ok := enums[obj.Type()]; !ok {
 					continue
 				}
 
