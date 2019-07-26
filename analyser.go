@@ -175,24 +175,35 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			// var x EnumType
 			// x = 123
 			for i, lhs := range n.Lhs {
-				lhsi, ok := lhs.(*ast.Ident)
-				if !ok {
-					// TODO: figure out what to do
-					continue
-				}
+				switch lhs := lhs.(type) {
+				case *ast.Ident:
+					obj := pass.TypesInfo.ObjectOf(lhs)
+					if obj == nil {
+						continue
+					}
+					if _, ok := enums[obj.Type()]; !ok {
+						continue
+					}
 
-				obj := pass.TypesInfo.ObjectOf(lhsi)
-				if obj == nil {
-					continue
-				}
-				if _, ok := enums[obj.Type()]; !ok {
-					continue
-				}
+					rhs := n.Rhs[i]
+					if _, isBasic := rhs.(*ast.BasicLit); isBasic {
+						pass.Reportf(n.Pos(), "basic literal assignment to checked enum")
+						return
+					}
+				case *ast.SelectorExpr, *ast.StarExpr, *ast.IndexExpr:
+					typ := pass.TypesInfo.TypeOf(lhs)
+					if _, ok := enums[typ]; !ok {
+						continue
+					}
 
-				rhs := n.Rhs[i]
-				if _, isBasic := rhs.(*ast.BasicLit); isBasic {
-					pass.Reportf(n.Pos(), "basic literal assignment to checked enum")
-					return
+					rhs := n.Rhs[i]
+					if _, isBasic := rhs.(*ast.BasicLit); isBasic {
+						pass.Reportf(n.Pos(), "basic literal assignment to checked enum")
+						return
+					}
+				default:
+					filePos := pass.Fset.Position(n.Pos())
+					fmt.Fprintf(os.Stderr, "%v: checkenum internal error: unhandled assignment type %T\n", filePos, lhs)
 				}
 			}
 		}

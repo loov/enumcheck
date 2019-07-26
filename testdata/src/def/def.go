@@ -15,7 +15,7 @@ const (
 
 var Eta = GreekLetterChecked(5)
 
-func Example() {
+func NonExhaustiveList() {
 	var x GreekLetterChecked = 99 // want "basic literal declaration to checked enum"
 	x = 88                        // want "basic literal assignment to checked enum"
 	switch x {                    // want "switch clause missing for Delta, Eta and Gamma"
@@ -26,4 +26,15 @@ func Example() {
 	default: // want "default literal clause for checked enum"
 		fmt.Println("default")
 	}
+}
+
+type Struct struct {
+	Value GreekLetterChecked
+}
+
+func AssignmentToStruct() {
+	var s Struct
+
+	s.Value = 123 // want "basic literal assignment to checked enum"
+	s.Value = Alpha
 }
