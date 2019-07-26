@@ -126,14 +126,14 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			for _, clause := range n.Body.List {
 				clause := clause.(*ast.CaseClause)
 				if clause.List == nil {
-					pass.Reportf(clause.Pos(), "default literal clause for checked enum")
+					pass.Reportf(clause.Pos(), "%v shouldn't have a default case", typ)
 					continue
 				}
 
 				for _, option := range clause.List {
 					switch option := option.(type) {
 					case *ast.BasicLit:
-						pass.Reportf(option.Pos(), "basic literal clause for checked enum")
+						pass.Reportf(option.Pos(), "implicit conversion of %v to %v", option.Value, typ)
 					case *ast.Ident:
 						obj := pass.TypesInfo.ObjectOf(option)
 						found[obj] = struct{}{}
@@ -155,7 +155,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 
 			if len(missing) > 0 {
-				pass.Reportf(n.Pos(), "switch clause missing for %v", humaneList(missing))
+				pass.Reportf(n.Pos(), "missing cases %v", humaneList(missing))
 			}
 
 		case *ast.ValueSpec:
@@ -166,8 +166,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 
 			for _, rhs := range n.Values {
-				if _, isBasic := rhs.(*ast.BasicLit); isBasic {
-					pass.Reportf(n.Pos(), "basic literal declaration to checked enum")
+				if basic, isBasic := rhs.(*ast.BasicLit); isBasic {
+					pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, typ)
 					return false
 				}
 			}
@@ -183,8 +183,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					// then type checker guarantees the assignment
 				} else {
 					rhs := n.Rhs[i]
-					if _, isBasic := rhs.(*ast.BasicLit); isBasic {
-						pass.Reportf(n.Pos(), "basic literal assignment to checked enum")
+					if basic, isBasic := rhs.(*ast.BasicLit); isBasic {
+						pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, against)
 					}
 				}
 			}
@@ -243,8 +243,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					typ := pass.TypesInfo.TypeOf(resultField.Type)
 					if _, ok := enums[typ]; ok {
 						ret := n.Results[returnIndex]
-						if _, isBasic := ret.(*ast.BasicLit); isBasic {
-							pass.Reportf(n.Pos(), "basic literal return to checked enum")
+						if basic, isBasic := ret.(*ast.BasicLit); isBasic {
+							pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, typ)
 						}
 					}
 					returnIndex++

@@ -16,14 +16,14 @@ const (
 var Eta = GreekLetterChecked(5)
 
 func NonExhaustiveList() {
-	var x GreekLetterChecked = 99 // want "basic literal declaration to checked enum"
-	x = 88                        // want "basic literal assignment to checked enum"
-	switch x {                    // want "switch clause missing for Delta, Eta and Gamma"
+	var x GreekLetterChecked = 99 // want "implicit conversion of 99 to def.GreekLetterChecked"
+	x = 88                        // want "implicit conversion of 88 to def.GreekLetterChecked"
+	switch x {                    // want "missing cases Delta, Eta and Gamma"
 	case Alpha:
 		fmt.Println("alpha")
-	case Beta, 4: // want "basic literal clause for checked enum"
+	case Beta, 4: // want "implicit conversion of 4 to def.GreekLetterChecked"
 		fmt.Println("beta")
-	default: // want "default literal clause for checked enum"
+	default: // want "def.GreekLetterChecked shouldn't have a default case"
 		fmt.Println("default")
 	}
 }
@@ -35,7 +35,7 @@ type Struct struct {
 func AssignmentToStruct() {
 	var s Struct
 
-	s.Value = 123 // want "basic literal assignment to checked enum"
+	s.Value = 123 // want "implicit conversion of 123 to def.GreekLetterChecked"
 	s.Value = Alpha
 }
 
@@ -48,7 +48,7 @@ func ExpandedAssignment() {
 }
 
 func Values() (a, b GreekLetterChecked) {
-	return Alpha, 3 // want "basic literal return to checked enum"
+	return Alpha, 3 // want "implicit conversion of 3 to def.GreekLetterChecked"
 }
 
 func ValuesX() (a, b GreekLetterChecked) {
