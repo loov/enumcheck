@@ -1,30 +1,30 @@
-// want package:"defs.DayChecked = {Friday | Monday | Saturday | Sunday | Thursday | Tuesday | Wednesday}"
+// want package:"defs.Day = {Friday | Monday | Saturday | Sunday | Thursday | Tuesday | Wednesday}"
 package defs
 
 import "fmt"
 
-// checkenum
-type DayChecked string
+// Day is an enumerated type.
+type Day string // checkenum
 
 const (
-	Monday    = DayChecked("monday")
-	Tuesday   = DayChecked("tuesday")
-	Wednesday = DayChecked("wednesday")
-	Thursday  = DayChecked("thursday")
-	Friday    = DayChecked("friday")
-	Saturday  = DayChecked("saturday")
-	Sunday    = DayChecked("sunday")
+	Monday    = Day("monday")
+	Tuesday   = Day("tuesday")
+	Wednesday = Day("wednesday")
+	Thursday  = Day("thursday")
+	Friday    = Day("friday")
+	Saturday  = Day("saturday")
+	Sunday    = Day("sunday")
 )
 
 func DayNonExhaustive() {
-	var day DayChecked
+	var day Day
 
 	switch day { // want "missing cases Friday, Monday, Saturday, Sunday, Thursday and Wednesday"
-	case "monday": // want "implicit conversion of \"monday\" to defs.DayChecked"
+	case "monday": // want "implicit conversion of \"monday\" to defs.Day"
 		fmt.Println("monday")
 	case Tuesday:
 		fmt.Println("beta")
-	default: // want "defs.DayChecked shouldn't have a default case"
+	default: // want "defs.Day shouldn't have a default case"
 		fmt.Println("default")
 	}
 }

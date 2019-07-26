@@ -64,14 +64,18 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	}, func(n ast.Node) {
 		ts := n.(*ast.TypeSpec)
 
-		// TODO: determine this based on comments
-		if !strings.HasSuffix(ts.Name.Name, "Checked") {
+		if ts.Comment == nil {
 			return
 		}
 
-		obj := pass.TypesInfo.Defs[ts.Name]
-		pkgEnums[obj.Type()] = &enum{
-			Type: obj.Type(),
+		for _, c := range ts.Comment.List {
+			if c.Text == "// checkenum" || c.Text == "//checkenum" {
+				obj := pass.TypesInfo.Defs[ts.Name]
+				pkgEnums[obj.Type()] = &enum{
+					Type: obj.Type(),
+				}
+				return
+			}
 		}
 	})
 
