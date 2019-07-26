@@ -1,5 +1,5 @@
-// want package:"def.Letter = {Alpha | Beta | Delta | Eta | Gamma}"
-package def
+// want package:"enumbyte.Letter = {Alpha | Beta | Delta | Eta | Gamma}"
+package enumbyte
 
 import "fmt"
 
@@ -16,14 +16,14 @@ const (
 var Eta = Letter(5)
 
 func NonExhaustiveList() {
-	var x Letter = 99 // want "implicit conversion of 99 to def.Letter"
-	x = 88            // want "implicit conversion of 88 to def.Letter"
+	var x Letter = 99 // want "implicit conversion of 99 to enumbyte.Letter"
+	x = 88            // want "implicit conversion of 88 to enumbyte.Letter"
 	switch x {        // want "missing cases Delta, Eta and Gamma"
 	case Alpha:
 		fmt.Println("alpha")
-	case Beta, 4: // want "implicit conversion of 4 to def.Letter"
+	case Beta, 4: // want "implicit conversion of 4 to enumbyte.Letter"
 		fmt.Println("beta")
-	default: // want "def.Letter shouldn't have a default case"
+	default: // want "enumbyte.Letter shouldn't have a default case"
 		fmt.Println("default")
 	}
 }
@@ -35,7 +35,7 @@ type Struct struct {
 func AssignmentToStruct() {
 	var s Struct
 
-	s.Value = 123 // want "implicit conversion of 123 to def.Letter"
+	s.Value = 123 // want "implicit conversion of 123 to enumbyte.Letter"
 	s.Value = Alpha
 }
 
@@ -48,7 +48,7 @@ func ExpandedAssignment() {
 }
 
 func Values() (a, b Letter) {
-	return Alpha, 3 // want "implicit conversion of 3 to def.Letter"
+	return Alpha, 3 // want "implicit conversion of 3 to enumbyte.Letter"
 }
 
 func ValuesX() (a, b Letter) {
@@ -57,5 +57,5 @@ func ValuesX() (a, b Letter) {
 
 func Channels() {
 	ch := make(chan Letter, 10)
-	ch <- 123 // want "implicit conversion of 123 to def.Letter"
+	ch <- 123 // want "implicit conversion of 123 to enumbyte.Letter"
 }
