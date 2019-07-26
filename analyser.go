@@ -98,7 +98,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 
 			if len(missing) > 0 {
-				pass.Reportf(n.Pos(), "switch clause missing for %v", missing)
+				pass.Reportf(n.Pos(), "switch clause missing for %v", humaneList(missing))
 			}
 
 		case *ast.ValueSpec:
@@ -140,4 +140,25 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	})
 
 	return nil, nil
+}
+
+func humaneList(list []string) string {
+	if len(list) == 0 {
+		return ""
+	}
+	if len(list) == 1 {
+		return list[0]
+	}
+
+	var s strings.Builder
+	for i, item := range list[:len(list)-1] {
+		if i > 0 {
+			s.WriteString(", ")
+		}
+		s.WriteString(item)
+	}
+	s.WriteString(" and ")
+	s.WriteString(list[len(list)-1])
+
+	return s.String()
 }
