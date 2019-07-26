@@ -1,5 +1,7 @@
 # checkenum
 
+***This is still a WIP, so exact behavior and name may change.***
+
 Analyzer for exhaustive enum switches.
 
 This package reports errors for:
