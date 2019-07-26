@@ -232,6 +232,11 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				return false
 			}
 
+			if funcDecl.Type.Results.NumFields() != len(n.Results) {
+				// returning tuples is handled by the compiler
+				return false
+			}
+
 			returnIndex := 0
 			for _, resultField := range funcDecl.Type.Results.List {
 				for range resultField.Names {
@@ -245,10 +250,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					returnIndex++
 				}
 			}
-			fmt.Printf("%#v\n", funcDecl)
-			// func Example() (a, b EnumType) {
-			//     return Alpha, 3
-			// }
 		}
 
 		return false

@@ -50,3 +50,7 @@ func ExpandedAssignment() {
 func Values() (a, b GreekLetterChecked) {
 	return Alpha, 3 // want "basic literal return to checked enum"
 }
+
+func ValuesX() (a, b GreekLetterChecked) {
+	return Values()
+}
