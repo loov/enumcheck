@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/types"
 	"os"
+	"sort"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -92,6 +93,11 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	}
 
 	if len(pkgEnums) > 0 {
+		for _, enum := range pkgEnums {
+			sort.Slice(enum.Expected, func(i, k int) bool {
+				return enum.Expected[i].Name() < enum.Expected[k].Name()
+			})
+		}
 		pass.ExportPackageFact(&packageEnumsFact{pkgEnums})
 	}
 

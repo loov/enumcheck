@@ -10,5 +10,5 @@ import (
 
 func TestFromFileSystem(t *testing.T) {
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, checkenum.Analyzer, "def", "use")
+	analysistest.Run(t, testdata, checkenum.Analyzer, "def", "use", "defs")
 }
