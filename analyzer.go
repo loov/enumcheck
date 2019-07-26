@@ -151,6 +151,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					case *ast.SelectorExpr:
 						obj := pass.TypesInfo.ObjectOf(option.Sel)
 						found[obj] = struct{}{}
+					case *ast.CompositeLit:
+						pass.Reportf(option.Pos(), "invalid enum for %v", typ)
 					default:
 						filePos := pass.Fset.Position(option.Pos())
 						fmt.Fprintf(os.Stderr, "%v: checkenum internal error: unhandled clause type %T\n", filePos, option)
