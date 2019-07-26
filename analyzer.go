@@ -123,6 +123,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		(*ast.AssignStmt)(nil),
 		(*ast.SwitchStmt)(nil),
 		(*ast.ReturnStmt)(nil),
+		(*ast.SendStmt)(nil),
 	}, func(n ast.Node, push bool, stack []ast.Node) bool {
 		switch n := n.(type) {
 		case *ast.SwitchStmt:
@@ -222,6 +223,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					fmt.Fprintf(os.Stderr, "%v: checkenum internal error: unhandled assignment type %T\n", filePos, lhs)
 				}
 			}
+
 		case *ast.ReturnStmt:
 			// TODO: this probably can be optimized
 			var funcDecl *ast.FuncDecl
@@ -258,6 +260,16 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					}
 					returnIndex++
 				}
+			}
+
+		case *ast.SendStmt:
+			typ := pass.TypesInfo.TypeOf(n.Chan).(*types.Chan)
+			if _, ok := enums[typ.Elem()]; !ok {
+				return false
+			}
+
+			if basic, isBasic := n.Value.(*ast.BasicLit); isBasic {
+				pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, typ.Elem())
 			}
 		}
 

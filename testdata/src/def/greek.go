@@ -54,3 +54,8 @@ func Values() (a, b Letter) {
 func ValuesX() (a, b Letter) {
 	return Values()
 }
+
+func Channels() {
+	ch := make(chan Letter, 10)
+	ch <- 123 // want "implicit conversion of 123 to def.Letter"
+}
