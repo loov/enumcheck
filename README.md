@@ -32,7 +32,3 @@ func Assignment() {
 }
 
 ```
-
-TODO:
-
-* [ ] make sure it actually works and doesn't crash
