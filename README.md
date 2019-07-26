@@ -26,7 +26,7 @@ func Switch(x Letter) {
 
 func Assignment() {
     var x Letter
-    x = 123 // error: "implicit conversion  of 123 to Letter
+    x = 123 // error: "implicit conversion of 123 to Letter
 }
 
 ```
