@@ -156,7 +156,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					}
 				}
 			}
-
 			missing := []string{}
 			for _, obj := range enum.Expected {
 				if _, exists := found[obj]; !exists {
@@ -211,7 +210,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					}
 
 					check(obj.Type(), i)
-				case *ast.SelectorExpr, *ast.StarExpr, *ast.IndexExpr:
+				case ast.Expr:
 					typ := pass.TypesInfo.TypeOf(lhs)
 					if _, ok := enums[typ]; !ok {
 						continue
