@@ -136,10 +136,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			found := map[types.Object]struct{}{}
 			for _, clause := range n.Body.List {
 				clause := clause.(*ast.CaseClause)
-				if clause.List == nil {
-					pass.Reportf(clause.Pos(), "%v shouldn't have a default case", typ)
-					continue
-				}
+				// if clause.List == nil {
+				// 	pass.Reportf(clause.Pos(), "%v shouldn't have a default case", typ)
+				// 	continue
+				// }
 
 				for _, option := range clause.List {
 					switch option := option.(type) {

@@ -14,7 +14,7 @@ func NonExhaustiveList() {
 		fmt.Println("alpha")
 	case enumbyte.Beta, 4: // want "implicit conversion of 4 to enumbyte.Letter"
 		fmt.Println("beta")
-	default: // want "enumbyte.Letter shouldn't have a default case"
+	default:
 		fmt.Println("default")
 	}
 }

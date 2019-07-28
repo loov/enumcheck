@@ -20,7 +20,7 @@ func DayNonExhaustive() {
 		fmt.Println("beta")
 	case True:
 		fmt.Println("beta")
-	default: // want "enumstruct.Option shouldn't have a default case"
+	default:
 		fmt.Println("default")
 	}
 }

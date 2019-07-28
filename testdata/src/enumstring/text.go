@@ -24,7 +24,7 @@ func DayNonExhaustive() {
 		fmt.Println("monday")
 	case Tuesday:
 		fmt.Println("beta")
-	default: // want "enumstring.Day shouldn't have a default case"
+	default:
 		fmt.Println("default")
 	}
 }
