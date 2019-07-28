@@ -1,5 +1,7 @@
 # checkenum
 
+[![CircleCI](https://circleci.com/gh/loov/checkenum.svg?style=svg)](https://circleci.com/gh/loov/checkenum)
+
 ***This is still a WIP, so exact behavior and name may change.***
 
 Analyzer for exhaustive enum switches.
