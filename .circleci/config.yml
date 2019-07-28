@@ -2,9 +2,9 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.11
+      - image: circleci/golang:1.12
 
-    working_directory: /home/checkenum
+    working_directory: /home/circleci/checkenum
     steps:
       - checkout
       - run: go get -v -t -d ./...
