@@ -2,10 +2,10 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.11
 
-    working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+    working_directory: /home/checkenum
     steps:
       - checkout
       - run: go get -v -t -d ./...
-      - run: go test -race -v ./...
+      - run: go test -v ./...
