@@ -4,7 +4,7 @@ package enumstring
 import "fmt"
 
 // Day is an enumerated type.
-type Day string // checkenum
+type Day string // enumcheck
 
 const (
 	Monday    = Day("monday")

@@ -4,7 +4,7 @@ jobs:
     docker:
       - image: circleci/golang:1.12
 
-    working_directory: /home/circleci/checkenum
+    working_directory: /home/circleci/enumcheck
     steps:
       - checkout
       - run: go get -v -t -d ./...

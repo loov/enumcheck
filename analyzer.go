@@ -1,4 +1,4 @@
-package checkenum
+package enumcheck
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 )
 
 var Analyzer = &analysis.Analyzer{
-	Name: "checkenum",
+	Name: "enumcheck",
 	Doc:  "check for enum validity",
 	Run:  run,
 	Requires: []*analysis.Analyzer{
@@ -69,7 +69,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 
 		for _, c := range ts.Comment.List {
-			if c.Text == "// checkenum" || c.Text == "//checkenum" {
+			if c.Text == "// enumcheck" || c.Text == "//enumcheck" {
 				obj := pass.TypesInfo.Defs[ts.Name]
 				pkgEnums[obj.Type()] = &enum{
 					Type: obj.Type(),
@@ -155,7 +155,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						pass.Reportf(option.Pos(), "invalid enum for %v", typ)
 					default:
 						filePos := pass.Fset.Position(option.Pos())
-						fmt.Fprintf(os.Stderr, "%v: checkenum internal error: unhandled clause type %T\n", filePos, option)
+						fmt.Fprintf(os.Stderr, "%v: enumcheck internal error: unhandled clause type %T\n", filePos, option)
 					}
 				}
 			}
@@ -222,7 +222,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					check(typ, i)
 				default:
 					filePos := pass.Fset.Position(n.Pos())
-					fmt.Fprintf(os.Stderr, "%v: checkenum internal error: unhandled assignment type %T\n", filePos, lhs)
+					fmt.Fprintf(os.Stderr, "%v: enumcheck internal error: unhandled assignment type %T\n", filePos, lhs)
 				}
 			}
 
@@ -238,7 +238,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 			if funcDecl == nil {
 				filePos := pass.Fset.Position(n.Pos())
-				fmt.Fprintf(os.Stderr, "%v: checkenum internal error: unable to find func decl\n", filePos)
+				fmt.Fprintf(os.Stderr, "%v: enumcheck internal error: unable to find func decl\n", filePos)
 				return false
 			}
 			if funcDecl.Type.Results == nil {

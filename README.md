@@ -1,6 +1,6 @@
-# checkenum
+# enumcheck
 
-[![CircleCI](https://circleci.com/gh/loov/checkenum.svg?style=svg)](https://circleci.com/gh/loov/checkenum)
+[![CircleCI](https://circleci.com/gh/loov/enumcheck.svg?style=svg)](https://circleci.com/gh/loov/enumcheck)
 
 ***This is still a WIP, so exact behavior and name may change.***
 
@@ -9,7 +9,7 @@ Analyzer for exhaustive enum switches.
 This package reports errors for:
 
 ``` go
-type Letter byte // checkenum
+type Letter byte // enumcheck
 
 const (
 	Alpha Letter = iota

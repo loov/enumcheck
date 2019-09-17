@@ -4,7 +4,7 @@ package enumbyte
 import "fmt"
 
 // Letter is an enumerated type.
-type Letter byte // checkenum
+type Letter byte // enumcheck
 
 const (
 	Alpha Letter = iota

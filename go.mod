@@ -1,4 +1,4 @@
-module github.com/loov/checkenum
+module github.com/loov/enumcheck
 
 go 1.12
 

@@ -3,7 +3,7 @@ package main
 import (
 	"golang.org/x/tools/go/analysis/singlechecker"
 
-	"github.com/loov/checkenum"
+	"github.com/loov/enumcheck"
 )
 
-func main() { singlechecker.Main(checkenum.Analyzer) }
+func main() { singlechecker.Main(enumcheck.Analyzer) }
