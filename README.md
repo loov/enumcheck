@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/loov/enumcheck.svg?style=svg)](https://circleci.com/gh/loov/enumcheck)
 
-***This is still a WIP, so exact behavior and name may change.***
+***This is still a WIP, so exact behavior may change.***
 
 Analyzer for exhaustive enum switches.
 
