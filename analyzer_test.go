@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/tools/go/analysis/analysistest"
 
-	"github.com/loov/enumcheck"
+	"loov.dev/enumcheck"
 )
 
 func TestFromFileSystem(t *testing.T) {
