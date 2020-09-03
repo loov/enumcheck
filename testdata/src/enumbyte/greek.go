@@ -55,17 +55,18 @@ func ValuesX() (a, b Letter) {
 	return Values()
 }
 
-func Channels() {
+func Chan() {
 	ch := make(chan Letter, 10)
 	ch <- 123 // want "implicit conversion of 123 to enumbyte.Letter"
 }
 
-func ChannelFunc() {
-	fn := func() chan Letter { return make(chan Letter, 10) }
-	fn() <- 123 // want "implicit conversion of 123 to enumbyte.Letter"
+func NamedChan() {
+	type LetterChan chan Letter
+	ch := make(LetterChan)
+	ch <- 123 // want "implicit conversion of 123 to enumbyte.Letter"
 }
 
-func ChannelFunc2() {
-	fn := func() chan<- Letter { return make(chan Letter, 10) }
+func ChanFunc() {
+	fn := func() chan Letter { return make(chan Letter, 10) }
 	fn() <- 123 // want "implicit conversion of 123 to enumbyte.Letter"
 }

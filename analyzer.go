@@ -266,6 +266,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 		case *ast.SendStmt:
 			chanType := pass.TypesInfo.TypeOf(n.Chan)
+			if named, ok := chanType.(*types.Named); ok {
+				chanType = named.Underlying()
+			}
+
 			switch typ := chanType.(type) {
 			case *types.Chan:
 				if _, ok := enums[typ.Elem()]; !ok {
