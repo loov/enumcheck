@@ -59,3 +59,13 @@ func Channels() {
 	ch := make(chan Letter, 10)
 	ch <- 123 // want "implicit conversion of 123 to enumbyte.Letter"
 }
+
+func ChannelFunc() {
+	fn := func() chan Letter { return make(chan Letter, 10) }
+	fn() <- 123 // want "implicit conversion of 123 to enumbyte.Letter"
+}
+
+func ChannelFunc2() {
+	fn := func() chan<- Letter { return make(chan Letter, 10) }
+	fn() <- 123 // want "implicit conversion of 123 to enumbyte.Letter"
+}

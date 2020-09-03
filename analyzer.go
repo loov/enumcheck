@@ -265,13 +265,19 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 
 		case *ast.SendStmt:
-			typ := pass.TypesInfo.TypeOf(n.Chan).(*types.Chan)
-			if _, ok := enums[typ.Elem()]; !ok {
+			chanType := pass.TypesInfo.TypeOf(n.Chan)
+			switch typ := chanType.(type) {
+			case *types.Chan:
+				if _, ok := enums[typ.Elem()]; !ok {
+					return false
+				}
+				if basic, isBasic := n.Value.(*ast.BasicLit); isBasic {
+					pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, typ.Elem())
+				}
+			default:
+				filePos := pass.Fset.Position(n.Pos())
+				fmt.Fprintf(os.Stderr, "%v: enumcheck internal error: unhandled SendStmt.Chan type %T\n", filePos, chanType)
 				return false
-			}
-
-			if basic, isBasic := n.Value.(*ast.BasicLit); isBasic {
-				pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, typ.Elem())
 			}
 		}
 
