@@ -32,3 +32,34 @@ func Assignment() {
 }
 
 ```
+
+This can also be used with types:
+
+``` go
+type Expr interface{} // enumcheck
+
+var _ Expr = Add{}
+var _ Expr = Mul{}
+
+type Add []Expr
+type Mul []Expr
+
+type Invalid []Expr
+
+func Switch(x Expr) {
+	switch x.(type) { // error: "missing cases Mul"
+	case Add:
+		fmt.Println("alpha")
+	case Invalid: // error: "implicit conversion of Invalid to Expr"
+		fmt.Println("beta")
+	default:
+		fmt.Println("unknown")
+	}
+}
+
+func Assignment() {
+	var x Expr
+	x = 3 // error: "implicit conversion of 3 to Expr
+	_ = x
+}
+```
