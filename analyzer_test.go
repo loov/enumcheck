@@ -11,5 +11,10 @@ import (
 func TestFromFileSystem(t *testing.T) {
 	testdata := analysistest.TestData()
 	analysistest.Run(t, testdata, enumcheck.Analyzer,
-		"enumbyte", "enumstring", "enumstruct", "indirect")
+		//"enumbyte",
+		//"enumstring",
+		//"enumstruct",
+		"enumtype",
+		//"indirect",
+	)
 }
