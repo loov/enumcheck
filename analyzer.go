@@ -451,6 +451,10 @@ func verifyCallExpr(pass *analysis.Pass, enums enumSet, n *ast.CallExpr) {
 		}
 
 		arg := n.Args[i]
+		if basic, isBasic := arg.(*ast.BasicLit); isBasic {
+			pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, enum.Type)
+		}
+
 		argtyp := pass.TypesInfo.TypeOf(arg)
 		if !enum.ContainsType(argtyp) {
 			pass.Reportf(n.Pos(), "implicit conversion of %v to %v", argtyp, enum.Type)

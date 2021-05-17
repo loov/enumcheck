@@ -28,6 +28,14 @@ func NonExhaustiveList() {
 	}
 }
 
+func ToString(v Letter) string { return string(v) }
+
+func ImplicitConversion() {
+	var _ Letter = 90 // want "implicit conversion of 90 to enumbyte.Letter"
+	_ = ToString(80)  // want "implicit conversion of 80 to enumbyte.Letter"
+	ToString(70)      // want "implicit conversion of 70 to enumbyte.Letter"
+}
+
 type Struct struct {
 	Value Letter
 }
