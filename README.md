@@ -4,6 +4,12 @@
 
 Analyzer for exhaustive enum switches.
 
+To install:
+
+```
+go install loov.dev/enumcheck@latest
+```
+
 This package reports errors for:
 
 ``` go
