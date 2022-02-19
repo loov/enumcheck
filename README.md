@@ -13,7 +13,8 @@ go install loov.dev/enumcheck@latest
 This package reports errors for:
 
 ``` go
-type Letter byte // enumcheck
+//enumcheck:exhaustive
+type Letter byte
 
 const (
 	Alpha Letter = iota
@@ -42,7 +43,8 @@ func Assignment() {
 This can also be used with types:
 
 ``` go
-type Expr interface{} // enumcheck
+//enumcheck:exhaustive
+type Expr interface{}
 
 var _ Expr = Add{}
 var _ Expr = Mul{}

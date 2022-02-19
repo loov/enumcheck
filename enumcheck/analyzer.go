@@ -71,30 +71,69 @@ func (enum *enum) String() string {
 	return enum.Type.String() + " = {" + strings.Join(names, " | ") + "}"
 }
 
+func isEnumcheckComment(comment string) bool {
+	comment = strings.TrimSpace(strings.TrimPrefix(comment, "//"))
+	return comment == "enumcheck" || strings.HasPrefix(comment, "enumcheck:")
+}
+
 func run(pass *analysis.Pass) (interface{}, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	pkgEnums := enumSet{}
 
+	addTypeSpec := func(ts *ast.TypeSpec) {
+		obj := pass.TypesInfo.Defs[ts.Name]
+		pkgEnums[obj.Type()] = &enum{
+			Pkg:      obj.Pkg(),
+			Type:     obj.Type(),
+			TypeEnum: types.IsInterface(obj.Type()),
+		}
+	}
+
 	// collect checked types
 	inspect.Preorder([]ast.Node{
-		(*ast.TypeSpec)(nil),
+		(*ast.GenDecl)(nil),
 	}, func(n ast.Node) {
-		ts := n.(*ast.TypeSpec)
+		gd := n.(*ast.GenDecl)
 
-		if ts.Comment == nil {
-			return
+		check := false
+		if gd.Doc != nil {
+			for _, c := range gd.Doc.List {
+				if isEnumcheckComment(c.Text) {
+					check = true
+					break
+				}
+			}
 		}
 
-		for _, c := range ts.Comment.List {
-			if c.Text == "// enumcheck" || c.Text == "//enumcheck" {
-				obj := pass.TypesInfo.Defs[ts.Name]
-				pkgEnums[obj.Type()] = &enum{
-					Pkg:      obj.Pkg(),
-					Type:     obj.Type(),
-					TypeEnum: types.IsInterface(obj.Type()),
+	nextSpec:
+		for _, spec := range gd.Specs {
+			ts, ok := spec.(*ast.TypeSpec)
+			if !ok {
+				continue nextSpec
+			}
+
+			if check {
+				addTypeSpec(ts)
+				continue nextSpec
+			}
+
+			if ts.Doc != nil {
+				for _, c := range ts.Doc.List {
+					if isEnumcheckComment(c.Text) {
+						addTypeSpec(ts)
+						continue nextSpec
+					}
 				}
-				return
+			}
+
+			if ts.Comment != nil {
+				for _, c := range ts.Comment.List {
+					if isEnumcheckComment(c.Text) {
+						addTypeSpec(ts)
+						continue nextSpec
+					}
+				}
 			}
 		}
 	})

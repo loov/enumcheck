@@ -4,7 +4,9 @@ package enumstruct
 import "fmt"
 
 // Option is an enumerated type.
-type Option struct{ value string } // enumcheck
+//
+//enumcheck:exhaustive
+type Option struct{ value string }
 
 var (
 	True  = Option{"true"}

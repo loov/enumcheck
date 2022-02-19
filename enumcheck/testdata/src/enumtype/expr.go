@@ -2,7 +2,9 @@
 package enumtype
 
 // Expr is an enumerated type.
-type Expr interface{} // enumcheck
+//
+//enumcheck:exhaustive
+type Expr interface{}
 
 var _ Expr = Add{}
 var _ Expr = Mul{}
