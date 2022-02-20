@@ -23,13 +23,11 @@ const (
 )
 
 func Switch(x Letter) {
-	switch x { // error: "missing cases Beta and Gamma"
+	switch x { // error: "missing cases Beta, Gamma and default"
 	case Alpha:
 		fmt.Println("alpha")
 	case 4: // error: "implicit conversion of 4 to Letter"
 		fmt.Println("beta")
-	default: // error: "Letter shouldn't have a default case"
-		fmt.Println("default")
 	}
 }
 
@@ -87,13 +85,11 @@ var (
 func DayNonExhaustive() {
 	var day Option
 
-	switch day { // want "missing cases False and Maybe"
+	switch day { // want "missing cases False, Maybe and default"
 	case Option{"invalid"}: // want "invalid enum for enumstruct.Option"
 		fmt.Println("beta")
 	case True:
 		fmt.Println("beta")
-	default:
-		fmt.Println("default")
 	}
 }
 ```

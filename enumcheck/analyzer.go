@@ -42,6 +42,7 @@ type enumSet map[types.Type]*enum
 
 type enum struct {
 	Pkg      *types.Package
+	Mode     enumMode
 	Type     types.Type
 	TypeEnum bool
 	Values   []types.Object
@@ -71,9 +72,57 @@ func (enum *enum) String() string {
 	return enum.Type.String() + " = {" + strings.Join(names, " | ") + "}"
 }
 
-func isEnumcheckComment(comment string) bool {
+type enumMode byte
+
+const (
+	// modeExhaustive, requires default blocks
+	modeExhaustive enumMode = 1
+	// modeRelaxed, makes default block optional
+	modeRelaxed enumMode = 2
+)
+
+func (mode enumMode) NeedsDefault() bool {
+	return mode == modeExhaustive
+}
+
+func contains(tags []string, s string) bool {
+	for _, x := range tags {
+		if s == x {
+			return true
+		}
+	}
+	return false
+}
+
+type enumComment struct {
+	mode   enumMode
+	ignore bool
+}
+
+func isEnumcheckComment(comment string) (enumComment, bool) {
 	comment = strings.TrimSpace(strings.TrimPrefix(comment, "//"))
-	return comment == "enumcheck" || strings.HasPrefix(comment, "enumcheck:")
+	matches := comment == "enumcheck" || strings.HasPrefix(comment, "enumcheck:")
+	if !matches {
+		return enumComment{}, false
+	}
+
+	var c enumComment
+	c.mode = modeExhaustive
+
+	args := strings.TrimPrefix(strings.TrimPrefix(comment, "enumcheck"), ":")
+	for _, x := range strings.Split(args, ",") {
+		switch strings.TrimSpace(x) {
+		case "":
+		case "exhaustive":
+			c.mode = modeExhaustive
+		case "relaxed":
+			c.mode = modeRelaxed
+		case "ignore":
+			c.ignore = true
+		}
+	}
+
+	return c, true
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
@@ -81,12 +130,13 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 	pkgEnums := enumSet{}
 
-	addTypeSpec := func(ts *ast.TypeSpec) {
+	addTypeSpec := func(ts *ast.TypeSpec, c enumComment) {
 		obj := pass.TypesInfo.Defs[ts.Name]
 		pkgEnums[obj.Type()] = &enum{
 			Pkg:      obj.Pkg(),
 			Type:     obj.Type(),
 			TypeEnum: types.IsInterface(obj.Type()),
+			Mode:     c.mode,
 		}
 	}
 
@@ -96,11 +146,11 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	}, func(n ast.Node) {
 		gd := n.(*ast.GenDecl)
 
-		check := false
+		var check *enumComment
 		if gd.Doc != nil {
 			for _, c := range gd.Doc.List {
-				if isEnumcheckComment(c.Text) {
-					check = true
+				if c, ok := isEnumcheckComment(c.Text); ok {
+					check = &c
 					break
 				}
 			}
@@ -113,15 +163,15 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				continue nextSpec
 			}
 
-			if check {
-				addTypeSpec(ts)
+			if check != nil {
+				addTypeSpec(ts, *check)
 				continue nextSpec
 			}
 
 			if ts.Doc != nil {
 				for _, c := range ts.Doc.List {
-					if isEnumcheckComment(c.Text) {
-						addTypeSpec(ts)
+					if c, ok := isEnumcheckComment(c.Text); ok {
+						addTypeSpec(ts, c)
 						continue nextSpec
 					}
 				}
@@ -129,8 +179,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 			if ts.Comment != nil {
 				for _, c := range ts.Comment.List {
-					if isEnumcheckComment(c.Text) {
-						addTypeSpec(ts)
+					if c, ok := isEnumcheckComment(c.Text); ok {
+						addTypeSpec(ts, c)
 						continue nextSpec
 					}
 				}
@@ -221,12 +271,13 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 
 			foundValues := map[types.Object]struct{}{}
+			foundDefault := false
 			for _, clause := range n.Body.List {
 				clause := clause.(*ast.CaseClause)
-				// if clause.List == nil {
-				// 	pass.Reportf(clause.Pos(), "%v shouldn't have a default case", typ)
-				// 	continue
-				// }
+				if clause.List == nil {
+					foundDefault = true
+					continue
+				}
 
 				for _, option := range clause.List {
 					switch option := option.(type) {
@@ -246,11 +297,15 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					}
 				}
 			}
+
 			missing := []string{}
 			for _, obj := range enum.Values {
 				if _, exists := foundValues[obj]; !exists {
 					missing = append(missing, obj.Name())
 				}
+			}
+			if enum.Mode.NeedsDefault() && !foundDefault {
+				missing = append(missing, "default")
 			}
 
 			if len(missing) > 0 {
