@@ -26,6 +26,17 @@ func NonExhaustiveList() {
 	}
 }
 
+func Ignore() {
+	x := Alpha
+	switch x { //enumcheck:ignore
+	case Alpha:
+		fmt.Println("alpha")
+	case 4: //enumcheck:ignore
+	case Beta:
+		fmt.Println("beta")
+	}
+}
+
 func ToString(v Letter) string { return string(v) }
 
 func ImplicitConversion() {

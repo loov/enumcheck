@@ -3,6 +3,7 @@ package enumcheck
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
 	"go/types"
 	"os"
 	"sort"
@@ -252,6 +253,37 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 	}
 
+	type ignoreKey struct {
+		file *token.File
+		line int
+	}
+
+	ignore := map[ignoreKey]struct{}{}
+
+	for _, file := range pass.Files {
+		for _, group := range file.Comments {
+			for _, comment := range group.List {
+				if x, ok := isEnumcheckComment(comment.Text); ok {
+					if x.ignore {
+						file := pass.Fset.File(comment.Pos())
+						line := file.Line(comment.Pos())
+						ignore[ignoreKey{file: file, line: line}] = struct{}{}
+					}
+				}
+
+			}
+		}
+	}
+
+	reportf := func(pos token.Pos, format string, args ...interface{}) {
+		file := pass.Fset.File(pos)
+		line := file.Line(pos)
+		if _, ok := ignore[ignoreKey{file: file, line: line}]; ok {
+			return
+		}
+		pass.Reportf(pos, format, args...)
+	}
+
 	// disallow basic literal declarations and assignments
 	inspect.WithStack([]ast.Node{
 		(*ast.ValueSpec)(nil),
@@ -282,7 +314,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				for _, option := range clause.List {
 					switch option := option.(type) {
 					case *ast.BasicLit:
-						pass.Reportf(option.Pos(), "implicit conversion of %v to %v", option.Value, typ)
+						reportf(option.Pos(), "implicit conversion of %v to %v", option.Value, typ)
 					case *ast.Ident:
 						obj := pass.TypesInfo.ObjectOf(option)
 						foundValues[obj] = struct{}{}
@@ -290,7 +322,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						obj := pass.TypesInfo.ObjectOf(option.Sel)
 						foundValues[obj] = struct{}{}
 					case *ast.CompositeLit:
-						pass.Reportf(option.Pos(), "invalid enum for %v", typ)
+						reportf(option.Pos(), "invalid enum for %v", typ)
 					default:
 						filePos := pass.Fset.Position(option.Pos())
 						fmt.Fprintf(os.Stderr, "%v: enumcheck internal error: unhandled clause type %T\n", filePos, option)
@@ -309,7 +341,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 
 			if len(missing) > 0 {
-				pass.Reportf(n.Pos(), "missing cases %v", humaneList(missing))
+				reportf(n.Pos(), "missing cases %v", humaneList(missing))
 			}
 
 		case *ast.TypeSwitchStmt:
@@ -352,7 +384,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						}
 					}
 					if !foundMatch {
-						pass.Reportf(option.Pos(), "implicit conversion of %v to %v", t.String(), enum.Type)
+						reportf(option.Pos(), "implicit conversion of %v to %v", t.String(), enum.Type)
 					}
 
 					foundTypes[t] = struct{}{}
@@ -367,7 +399,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 
 			if len(missing) > 0 {
-				pass.Reportf(n.Pos(), "missing cases %v", humaneList(missing))
+				reportf(n.Pos(), "missing cases %v", humaneList(missing))
 			}
 
 		case *ast.ValueSpec:
@@ -380,12 +412,12 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 			for _, rhs := range n.Values {
 				if basic, isBasic := rhs.(*ast.BasicLit); isBasic {
-					pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, typ)
+					reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, typ)
 					return false
 				}
 				rhstyp := pass.TypesInfo.TypeOf(rhs)
 				if !enum.ContainsType(rhstyp) {
-					pass.Reportf(n.Pos(), "implicit conversion of %v to %v", rhstyp, typ)
+					reportf(n.Pos(), "implicit conversion of %v to %v", rhstyp, typ)
 					return false
 				}
 			}
@@ -402,12 +434,12 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				} else {
 					rhs := n.Rhs[i]
 					if basic, isBasic := rhs.(*ast.BasicLit); isBasic {
-						pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, against)
+						reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, against)
 					}
 
 					rhstyp := pass.TypesInfo.TypeOf(rhs)
 					if !enum.ContainsType(rhstyp) {
-						pass.Reportf(n.Pos(), "implicit conversion of %v to %v", rhstyp, enum.Type)
+						reportf(n.Pos(), "implicit conversion of %v to %v", rhstyp, enum.Type)
 					}
 				}
 			}
@@ -440,7 +472,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 			for _, rhs := range n.Rhs {
 				if callExpr, ok := rhs.(*ast.CallExpr); ok {
-					verifyCallExpr(pass, enums, callExpr)
+					verifyCallExpr(reportf, pass, enums, callExpr)
 					continue
 				}
 			}
@@ -477,11 +509,11 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					if ok {
 						ret := n.Results[returnIndex]
 						if basic, isBasic := ret.(*ast.BasicLit); isBasic {
-							pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, enum.Type)
+							reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, enum.Type)
 						}
 						rettyp := pass.TypesInfo.TypeOf(ret)
 						if !enum.ContainsType(rettyp) {
-							pass.Reportf(n.Pos(), "implicit conversion of %v to %v", rettyp, enum.Type)
+							reportf(n.Pos(), "implicit conversion of %v to %v", rettyp, enum.Type)
 							return false
 						}
 					}
@@ -502,11 +534,11 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					return false
 				}
 				if basic, isBasic := n.Value.(*ast.BasicLit); isBasic {
-					pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, enum.Type)
+					reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, enum.Type)
 				}
 				valtyp := pass.TypesInfo.TypeOf(n.Value)
 				if !enum.ContainsType(valtyp) {
-					pass.Reportf(n.Pos(), "implicit conversion of %v to %v", valtyp, enum.Type)
+					reportf(n.Pos(), "implicit conversion of %v to %v", valtyp, enum.Type)
 					return false
 				}
 			default:
@@ -516,7 +548,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 
 		case *ast.CallExpr:
-			verifyCallExpr(pass, enums, n)
+			verifyCallExpr(reportf, pass, enums, n)
 
 		default:
 			filePos := pass.Fset.Position(n.Pos())
@@ -529,7 +561,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
-func verifyCallExpr(pass *analysis.Pass, enums enumSet, n *ast.CallExpr) {
+type reportFn func(pos token.Pos, format string, args ...interface{})
+
+func verifyCallExpr(reportf reportFn, pass *analysis.Pass, enums enumSet, n *ast.CallExpr) {
 	fn := pass.TypesInfo.TypeOf(n.Fun)
 	sig, ok := fn.(*types.Signature)
 	if !ok {
@@ -546,12 +580,12 @@ func verifyCallExpr(pass *analysis.Pass, enums enumSet, n *ast.CallExpr) {
 
 		arg := n.Args[i]
 		if basic, isBasic := arg.(*ast.BasicLit); isBasic {
-			pass.Reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, enum.Type)
+			reportf(n.Pos(), "implicit conversion of %v to %v", basic.Value, enum.Type)
 		}
 
 		argtyp := pass.TypesInfo.TypeOf(arg)
 		if !enum.ContainsType(argtyp) {
-			pass.Reportf(n.Pos(), "implicit conversion of %v to %v", argtyp, enum.Type)
+			reportf(n.Pos(), "implicit conversion of %v to %v", argtyp, enum.Type)
 			return
 		}
 	}
