@@ -93,3 +93,53 @@ func DayNonExhaustive() {
 	}
 }
 ```
+
+Mode `//enumcheck:relaxed` allows to make "default" case optional:
+
+``` go
+//enumcheck:relaxed
+type Option string
+
+var (
+	Alpha = Option("alpha")
+	Beta  = Option("beta")
+)
+
+func Relaxed() {
+	var day Option
+	switch day {
+	case Alpha:
+		fmt.Println("alpha")
+	case Beta:
+		fmt.Println("beta")
+	}
+}
+```
+
+Mode `//enumcheck:silent` allows to silence reports for switch statements:
+
+``` go
+//enumcheck:silent
+type Option string
+
+var (
+	Alpha = Option("alpha")
+	Beta  = Option("beta")
+)
+
+func NoErrorHere() {
+	var day Option
+	switch day {
+	case Beta:
+		fmt.Println("beta")
+	}
+}
+
+func EnablePerSwitch() {
+	var day Option
+	switch day { //enumcheck:exhaustive
+	case Beta:
+		fmt.Println("beta")
+	}
+}
+```

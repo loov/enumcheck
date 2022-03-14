@@ -92,7 +92,13 @@ const (
 	modeExhaustive enumMode = 1
 	// modeRelaxed, makes default block optional
 	modeRelaxed enumMode = 2
+	// modeSilent, makes ignore reports
+	modeSilent enumMode = 3
 )
+
+func (mode enumMode) ShouldIgnore() bool {
+	return mode == modeSilent
+}
 
 func (mode enumMode) NeedsDefault() bool {
 	return mode == modeExhaustive
@@ -108,8 +114,7 @@ func contains(tags []string, s string) bool {
 }
 
 type enumComment struct {
-	mode   enumMode
-	ignore bool
+	mode enumMode
 }
 
 func isEnumcheckComment(comment string) (enumComment, bool) {
@@ -130,8 +135,8 @@ func isEnumcheckComment(comment string) (enumComment, bool) {
 			c.mode = modeExhaustive
 		case "relaxed":
 			c.mode = modeRelaxed
-		case "ignore":
-			c.ignore = true
+		case "ignore", "silent":
+			c.mode = modeSilent
 		}
 	}
 
@@ -266,33 +271,37 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 	}
 
-	type ignoreKey struct {
+	type overridePos struct {
 		file *token.File
 		line int
 	}
 
-	ignore := map[ignoreKey]struct{}{}
+	overrideMode := map[overridePos]enumComment{}
 
 	for _, file := range pass.Files {
 		for _, group := range file.Comments {
 			for _, comment := range group.List {
 				if x, ok := isEnumcheckComment(comment.Text); ok {
-					if x.ignore {
-						file := pass.Fset.File(comment.Pos())
-						line := file.Line(comment.Pos())
-						ignore[ignoreKey{file: file, line: line}] = struct{}{}
-					}
+					file := pass.Fset.File(comment.Pos())
+					line := file.Line(comment.Pos())
+					overrideMode[overridePos{file: file, line: line}] = x
 				}
-
 			}
 		}
 	}
 
-	reportf := func(pos token.Pos, format string, args ...interface{}) {
+	checkOverride := func(pos token.Pos) (enumComment, bool) {
 		file := pass.Fset.File(pos)
 		line := file.Line(pos)
-		if _, ok := ignore[ignoreKey{file: file, line: line}]; ok {
-			return
+		c, ok := overrideMode[overridePos{file: file, line: line}]
+		return c, ok
+	}
+
+	reportf := func(pos token.Pos, format string, args ...interface{}) {
+		if override, ok := checkOverride(pos); ok {
+			if override.mode.ShouldIgnore() {
+				return
+			}
 		}
 		pass.Reportf(pos, format, args...)
 	}
@@ -349,8 +358,16 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					missing = append(missing, obj.Name())
 				}
 			}
-			if enum.Mode.NeedsDefault() && !foundDefault {
+
+			mode := enum.Mode
+			if override, ok := checkOverride(n.Pos()); ok {
+				mode = override.mode
+			}
+			if mode.NeedsDefault() && !foundDefault {
 				missing = append(missing, "default")
+			}
+			if mode.ShouldIgnore() {
+				missing = nil
 			}
 
 			if len(missing) > 0 {
