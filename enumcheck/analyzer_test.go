@@ -13,6 +13,7 @@ func TestFromFileSystem(t *testing.T) {
 	analysistest.Run(t, testdata, enumcheck.Analyzer,
 		"enumbyte",
 		"enumstring",
+		"enumstring2",
 		"enumstruct",
 		"enumtype",
 		"indirect",

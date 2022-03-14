@@ -48,6 +48,8 @@ type enum struct {
 	TypeEnum bool
 	Values   []types.Object
 	Types    []types.Type
+
+	ValueSpecs []*ast.ValueSpec
 }
 
 func (enum *enum) ContainsType(t types.Type) bool {
@@ -56,6 +58,16 @@ func (enum *enum) ContainsType(t types.Type) bool {
 	}
 	for _, typ := range enum.Types {
 		if typ == t {
+			return true
+		}
+	}
+	return false
+}
+
+// IsDeclaration returns whether valueSpec was used to declare this enum.
+func (enum *enum) IsDeclaration(valueSpec *ast.ValueSpec) bool {
+	for _, decl := range enum.ValueSpecs {
+		if decl == valueSpec {
 			return true
 		}
 	}
@@ -218,6 +230,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						if !check {
 							continue
 						}
+						enum.ValueSpecs = append(enum.ValueSpecs, spec)
 
 						for _, value := range spec.Values {
 							typ := pass.TypesInfo.TypeOf(value)
@@ -407,6 +420,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			typ := pass.TypesInfo.TypeOf(n.Type)
 			enum, ok := enums[typ]
 			if !ok {
+				return false
+			}
+			if enum.IsDeclaration(n) {
 				return false
 			}
 
