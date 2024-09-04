@@ -88,12 +88,10 @@ func (enum *enum) String() string {
 type enumMode byte
 
 const (
-	// modeExhaustive, requires default blocks
-	modeExhaustive enumMode = 1
-	// modeRelaxed, makes default block optional
-	modeRelaxed enumMode = 2
-	// modeSilent, makes ignore reports
-	modeSilent enumMode = 3
+	modeExhaustive enumMode = 1 // modeExhaustive, requires all values; requires default blocks
+	modeRelaxed    enumMode = 2 // modeRelaxed, requires all values; optional default blocks
+	modeComplete   enumMode = 3 // modeComplete, requires either all values or a default block.
+	modeSilent     enumMode = 4 // modeSilent, ignore all reports
 )
 
 func (mode enumMode) ShouldIgnore() bool {
@@ -133,6 +131,8 @@ func isEnumcheckComment(comment string) (enumComment, bool) {
 		case "":
 		case "exhaustive":
 			c.mode = modeExhaustive
+		case "complete":
+			c.mode = modeComplete
 		case "relaxed":
 			c.mode = modeRelaxed
 		case "ignore", "silent":
@@ -365,6 +365,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 			if mode.NeedsDefault() && !foundDefault {
 				missing = append(missing, "default")
+			}
+			if mode == modeComplete && foundDefault {
+				missing = nil
 			}
 			if mode.ShouldIgnore() {
 				missing = nil

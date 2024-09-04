@@ -12,6 +12,7 @@ func TestFromFileSystem(t *testing.T) {
 	testdata := analysistest.TestData()
 	analysistest.Run(t, testdata, enumcheck.Analyzer,
 		"enumbyte",
+		"enumcomplete",
 		"enumpartial",
 		"enumstring",
 		"enumstring2",

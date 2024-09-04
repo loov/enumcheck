@@ -4,6 +4,7 @@ package enumpartial
 import "fmt"
 
 // Day is an enumerated type.
+//
 //enumcheck:silent
 type Day string
 
